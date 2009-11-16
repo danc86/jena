@@ -24,14 +24,12 @@ import java.io.StringReader ;
 import org.apache.jena.datatypes.BaseDatatype ;
 import org.apache.jena.datatypes.DatatypeFormatException ;
 import org.apache.jena.datatypes.RDFDatatype ;
-import org.apache.jena.rdfxml.xmlinput.ALiteral ;
-import org.apache.jena.rdfxml.xmlinput.ARP ;
-import org.apache.jena.rdfxml.xmlinput.AResource ;
-import org.apache.jena.rdfxml.xmlinput.StatementHandler ;
-import org.apache.jena.shared.BrokenException ;
-import org.xml.sax.ErrorHandler ;
+import org.xml.sax.InputSource;
 import org.xml.sax.SAXException ;
-import org.xml.sax.SAXParseException ;
+import org.xml.sax.helpers.DefaultHandler;
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 
 /**
  * Builtin data type to represent XMLLiteral (i.e. items created
@@ -64,9 +62,14 @@ public class XMLLiteralType extends BaseDatatype implements RDFDatatype {
      */
     @Override
     public Object parse(String lexicalForm) throws DatatypeFormatException {
-        if ( !isValid(lexicalForm))
-          throw new DatatypeFormatException("Bad rdf:XMLLiteral");
-        return lexicalForm;
+        try {
+            parseXml(lexicalForm);
+        } catch (SAXException e) {
+            throw new DatatypeFormatException(lexicalForm, this, "SAXException: " + e);
+        } catch (IOException e) {
+            throw new DatatypeFormatException(lexicalForm, this, "IOException: " + e);
+        }
+        return lexicalForm; // XXX could we return the parsed form instead here?
     }
     
     /**
@@ -75,79 +78,27 @@ public class XMLLiteralType extends BaseDatatype implements RDFDatatype {
      */
     @Override
     public boolean isValid(final String lexicalForm) {
-        /*
-         * To check the lexical form we construct
-         * a dummy RDF/XML document and parse it with
-         * ARP. ARP performs an exclusive canonicalization,
-         * the dummy document has exactly one triple.
-         * If the lexicalForm is valid then the resulting
-         * literal found by ARP is unchanged.
-         * All other scenarios are either impossible
-         * or occur because the lexical form is invalid.
-         */
-        final boolean status[] = new boolean[]{false,false,false};
-        // status[0] true on error or other reason to know that this is not well-formed
-        // status[1] true once first triple found
-        // status[2] the result (good if status[1] and not status[0]).
-        
-        ARP arp = new ARP();
-        
-        arp.getHandlers().setErrorHandler(new ErrorHandler(){
-        	@Override
-            public void fatalError(SAXParseException e){
-        		status[0] = true;
-        	}
-			@Override
-            public void error(SAXParseException e){
-				status[0] = true;
-			}
-			@Override
-            public void warning(SAXParseException e){
-				status[0] = true;
-			}
-        });
-        arp.getHandlers().setStatementHandler(new StatementHandler(){
-        @Override
-        public void statement(AResource a, AResource b, ALiteral l){
-        	/* this method is invoked exactly once
-        	 * while parsing the dummy document.
-        	 * The l argument is in exclusive canonical XML and
-        	 * corresponds to where the lexical form has been 
-        	 * in the dummy document. The lexical form is valid
-        	 * iff it is unchanged.
-        	 */
-        	if (status[1] || !l.isWellFormedXML()) {
-				status[0] = true;
-			}
-			//throw new BrokenException("plain literal in XMLLiteral code.");
-            status[1] = true;
-            status[2] = l.toString().equals(lexicalForm);
-        }
-		@Override
-        public void statement(AResource a, AResource b, AResource l){
-	      status[0] = true;
-	      //throw new BrokenException("resource valued RDF/XML in XMLLiteral code.");
-	    }
-        });
         try {
-        
-        arp.load(new StringReader(
-        "<rdf:RDF  xmlns:rdf='http://www.w3.org/1999/02/22-rdf-syntax-ns#'>\n"
-        +"<rdf:Description><rdf:value rdf:parseType='Literal'>"
-        +lexicalForm+"</rdf:value>\n"
-        +"</rdf:Description></rdf:RDF>"
-        ));
-        
+            parseXml(lexicalForm);
+        } catch (SAXException e) {
+            return false;
+        } catch (IOException e) {
+            return false;
         }
-        catch (IOException ioe){
-           throw new BrokenException(ioe);	
+        return true;
+    }
+
+    private void parseXml(String xml) throws SAXException, IOException {
+        SAXParserFactory factory = SAXParserFactory.newInstance();
+        factory.setValidating(true);
+        factory.setNamespaceAware(true);
+        SAXParser parser;
+        try {
+            parser = factory.newSAXParser();
+        } catch (ParserConfigurationException e) {
+            throw new RuntimeException(e);
         }
-        catch (SAXException s){
-        	return false;
-        }
-        
-        
-        return (!status[0])&&status[1]&&status[2];
-    }    
+        parser.parse(new InputSource(new StringReader(xml)), new DefaultHandler());
+    }
 
 }

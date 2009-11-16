@@ -1777,9 +1777,9 @@ public class GraphContractTest<T extends Graph>
 				false);
 		testLiteralTypingBasedFind("a P '1'xsd:double", 1, "'1'xsd:int", "",
 				false);
-		testLiteralTypingBasedFind("a P 'abc'rdf:XMLLiteral", 1, "'abc'", "",
+		testLiteralTypingBasedFind("a P '<abc/>'rdf:XMLLiteral", 1, "'<abc/>'", "",
 				false);
-		testLiteralTypingBasedFind("a P 'abc'", 1, "'abc'rdf:XMLLiteral", "",
+		testLiteralTypingBasedFind("a P '<abc/>'", 1, "'<abc/>'rdf:XMLLiteral", "",
 				false);
 		//
 		// floats & doubles are not compatible
