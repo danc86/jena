@@ -41,4 +41,16 @@ public class XMLLiteralTypeUnitTest {
             "format, and as RDF. Suggestions for improvement are welcome.</p></div>"));
     }
 
+    @Test
+    public void shouldNotConsiderNumericEntitiesInvalid() {
+        assertTrue(type.isValid("<div xmlns=\"http://www.w3.org/1999/xhtml\">" +
+            "Tom&#225;&#353; Masaryk</div>"));
+    }
+
+    @Test
+    public void shouldNotConsiderNewlinesInsideTagsInvalid() {
+        assertTrue(type.isValid("<div xmlns=\"http://www.w3.org/1999/xhtml\">" +
+            "<a \n href=\"http://example.com\">a link</a></div>"));
+    }
+
 }

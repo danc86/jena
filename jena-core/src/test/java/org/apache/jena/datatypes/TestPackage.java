@@ -20,6 +20,7 @@ package org.apache.jena.datatypes;
 
 import junit.framework.JUnit4TestAdapter ;
 import junit.framework.TestSuite ;
+import org.apache.jena.datatypes.xsd.impl.XMLLiteralTypeUnitTest;
 
 /**
     Collected test suite for the .datatype package.
@@ -37,5 +38,6 @@ public class TestPackage extends TestSuite {
         super("datatypes");
         addTest(new JUnit4TestAdapter(TestDatatypes.class)) ;
         addTest(new JUnit4TestAdapter(TestDatatypeValues.class)) ;
+        addTest(new JUnit4TestAdapter(XMLLiteralTypeUnitTest.class));
     }
 }
